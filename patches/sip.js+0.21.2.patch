@@ -1,0 +1,37 @@
+diff --git a/node_modules/sip.js/lib/api/registerer.js b/node_modules/sip.js/lib/api/registerer.js
+index 9065da3..d49e026 100644
+--- a/node_modules/sip.js/lib/api/registerer.js
++++ b/node_modules/sip.js/lib/api/registerer.js
+@@ -308,6 +308,13 @@ export class Registerer {
+                             expires = Number(contact.getParam("expires"));
+                             break;
+                         }
++                        // Grandstream / cloud UCM often rewrite Contact host or port in 200 OK.
++                        if (this.userAgent.contact.uri.user &&
++                            contact.uri.user === this.userAgent.contact.uri.user) {
++                            this.logger.warn("REGISTER Contact matched by extension user (PBX rewritten host/port).");
++                            expires = Number(contact.getParam("expires"));
++                            break;
++                        }
+                     }
+                     contact = undefined;
+                 }
+@@ -320,10 +327,14 @@ export class Registerer {
+                 }
+                 // The contact must have an expires.
+                 if (expires === undefined) {
+-                    this.logger.error("Contact pointing to us is missing expires parameter, dropping response");
+-                    this.unregistered();
+-                    this.waitingToggle(false);
+-                    return;
++                    expires = Number(contact.getParam("expires"));
++                }
++                if (expires === undefined && response.message.hasHeader("expires")) {
++                    expires = Number(response.message.getHeader("expires"));
++                }
++                if (expires === undefined) {
++                    expires = 600;
++                    this.logger.warn("REGISTER Contact missing expires; using 600s.");
+                 }
+                 // Save gruu values
+                 if (contact.hasParam("temp-gruu")) {
