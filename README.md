@@ -1,67 +1,97 @@
-# Grandstream UCM WebRTC Electron Softphone
 
-A production-ready desktop softphone built with **Vue 3**, **Tailwind CSS**, **Electron**, and **SIP.js 0.21.1**, specifically optimized for **Grandstream UCM6200/6300 series PBX** behind server-side double NAT.
+# 📞 Grandstream UCM WebRTC Electron Softphone (Unofficial)
 
-## Key technical solved bugs
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Framework: Vue 3](https://img.shields.io/badge/Framework-Vue%203-4fc08d.svg)](https://vuejs.org/)
+[![Platform: Electron](https://img.shields.io/badge/Platform-Electron-4784bc.svg)](https://www.electronjs.org/)
 
-- **Grandstream `.invalid` Contact bug bypass** — Dynamic host rewriting to `127.0.0.1` while preserving WebRTC ephemeral ports, so UCM `rport` mapping does not fail when sip.js would otherwise ship `*.invalid` contacts.
-- **Telecom operator early media playback** — Delayed teardown injection (3500 ms) on `onReject` states (404, 486, 503) to capture and play in-band carrier audio announcements before the peer connection is disposed.
-- **Attended transfer (warm transfer)** — Consultative session management: hold the customer, preview the target, then bridge legs with SIP REFER w/Replaces.
-- **Local busy tone fallback** — Synthesized busy tone when internal extensions reject without SDP (no remote announcement to play).
+A production-ready desktop softphone built with **Vue 3**, **Tailwind CSS**, **Electron**, and **SIP.js 0.21.1**, specifically engineered and optimized for **Grandstream UCM6200/6300 series PBX** operating behind complex server-side double NAT or WAN environments.
 
-Additional hardening includes a **sip.js patch** for REGISTER 200 OK Contact matching when UCM rewrites host/port, **STUN-first ICE** and SDP munging for WAN media paths, and **TLS trust** for self-signed UCM WSS in packaged Electron builds.
+---
 
-## Features
+## 🔥 Key Technical Bugs Solved
 
-- Extension login with optional saved credentials and auto-login
-- Outbound / inbound calls, mute, hold
-- Quick-transfer teams (settings) and attended transfer UI
-- Call history and missed-call log (SQLite, per machine)
-- macOS and Windows installers via electron-builder
+This repository provides production-tested workarounds for notorious WebRTC/SIP implementation issues specific to Grandstream UCM (Asterisk-based) firmware:
 
-## Requirements
+* **Grandstream `.invalid` Contact Bug Bypass** Automatically rewrites the contact host context to `127.0.0.1` while carefully preserving WebRTC ephemeral ports. This prevents the UCM's `rport` and received mechanism from failing when `sip.js` attempts to ship raw `*.invalid` WebRTC domain strings.
+* **Telecom Operator Early Media Playback** Introduces a precise macro-task delayed teardown execution loop (3500 ms) inside `onReject` final states (`404 Not Found`, `486 Busy Here`, `503 Service Unavailable`). This explicitly keeps the `RTCPeerConnection` and media tracks alive long enough to capture and stream in-band carrier telecom audio announcements (e.g., *"The number you have dialed..."*) before session destruction.
+* **Attended Transfer (Warm Transfer / Consultation)** Implements a consultative multi-session routing pipeline. Allows agents to seamlessly place the primary customer leg on remote hold, establish a secondary outbound consultation channel to a dynamic team extension, and perform a full bridging handshake via `SIP REFER with Replaces`.
+* **Local Busy Tone Fallback Syntax** Monitors incoming rejection response contexts. If an internal PBX extension triggers a rejection *without* attaching an Audio SDP payload, the app automatically generates and synthesizes a native call progression tone (*"Tu... Tu... Tu..."*) locally via a custom tone synthesis engine.
 
-- Node.js 20+
-- npm
+> **Note:** Additional hardening includes an embedded **sip.js native patch** resolving deep-level `REGISTER 200 OK` Contact matching failures caused by UCM runtime port/host rewriting maneuvers, alongside **STUN-first fast candidate selection** for optimized WAN WebRTC media mapping.
 
-## Setup
+---
+
+## 🌟 Core Features
+
+* **Secure Authentication Engine:** Extension login featuring optional session persistence powered by Electron's native OS-level hardware encryption layer (`safeStorage`).
+* **Full Call Control Layout:** Native Support for Inbound/Outbound standard streams, digital microphone toggling (Mute), and network line hold states.
+* **Enterprise CTI UX Widget:** Contextual In-Call layout displaying active call timers, active mute alerts, and an instant **One-Click Speed Dial Attended Transfer** panel for designated call center queues.
+* **Local Storage Engine:** Persisted call history data sheets, missed call notification queues, and quick-transfer team address configurations operating entirely client-side via a local embedded **SQLite** daemon.
+* **Universal Installers:** Fully production-packaged setups executable on enterprise workstations natively through cross-platform `.dmg` (macOS) and `.exe` (Windows) distributions.
+
+---
+
+## ⚙️ Requirements
+
+* **Node.js** Version 20.x or higher
+* **npm** Version 10.x or higher
+
+---
+
+## 🚀 Getting Started
+
+### 1. Installation & Environment Configuration
+Clone this repository to your workstation environment, provision your hardware branding targets, and configure your networking endpoints:
 
 ```bash
+# Copy the environment template
 cp .env.example .env
-# Edit .env — set VITE_APP_NAME, VITE_UCM_HOST, VITE_UCM_WSS_PORT
+
+# Open and customize your enterprise specifications
+# Set VITE_APP_NAME, VITE_UCM_HOST, and VITE_UCM_WSS_PORT
+
+```
+
+Install your required dependencies. A built-in `postinstall` script hooks natively to automatically inject our local UCM core patch:
+
+```bash
 npm install
 ```
 
-`postinstall` applies `patches/sip.js+0.21.2.patch` (Grandstream UCM REGISTER Contact handling).
-
-## Development
-
+### 2. Development Lifecycle
+To launch the compilation engine with hot module replacement (HMR) and activate your local development environment debugger shell:
 ```bash
 npm run dev
 ```
 
-Runs Vite + Electron with hot reload.
-
-## Production builds
-
+### 3. Compiling Production Binaries
+To build clean, ready-to-deploy client installers, execute the respective platform wrapper scripts. _Ensure your target .env parameters are present during execution as variables are hard-baked into production bundles:_
 ```bash
-npm run dist:mac    # DMG + zip (arm64 on Apple Silicon)
-npm run dist:win    # NSIS + portable (x64)
-npm run dist:all    # both
+npm run dist:mac    # Compiles macOS native .dmg & universal zip bundles
+npm run dist:win    # Compiles Windows standard NSIS .exe setup bundles
+npm run dist:all    # Compiles packages for both operating systems simultaneously
 ```
 
-Artifacts are written to `release/`. Run builds with `.env` present so UCM host and branding are baked into the bundle.
+All final compiled distribution builds are automatically written to the root `/release` folder.
 
-## Project layout
+### 📂 Project Architecture
 
-| Path | Purpose |
-|------|---------|
-| `src/` | Vue UI, SIP service, call history |
-| `electron/` | Main process, SQLite, preload, TLS/protocol |
-| `build/icons/` | App icons (`icon.icns`, `icon.ico`) |
-| `patches/` | sip.js patch for UCM registration |
+```text
+├── electron/          # Main architecture scripts, preload declarations, and safeStorage bindings
+├── patches/           # Version-locked local automated patches (resolving sip.js registration matching)
+├── src/               # Vue 3 reactive layout layers, Tailwind design templates, and global SIP state service
+│   ├── components/    # Reusable user interface components (Dialpad, In-call controls, Settings)
+│   ├── services/      # Core singleton softphone orchestration (`sipService.js`)
+│   └── store/         # Call logs, SQLite communication handlers, and state management
+├── build/icons/       # Native source file application graphics assets (icon.ico, icon.icns)
+└── .env.example       # Distribution reference configuration model
+```
 
-## Security notes
+### 🔒 Security Parameters
 
-- Do **not** commit `.env` (PBX host and branding).
-- Passwords are stored with Electron `safeStorage` when “Remember settings” is enabled.
+- **Credential Security:** When the "Remember settings" feature is flagged, extension configuration secrets are immediately encrypted at rest using Chromium's specialized cryptographical hooks before hitting the localized SQLite storage volume.  
+    
+- **Network Transport Layer:** Packed production builds are configured with strict TLS exception bypass flags specifically for local UCM address ranges, allowing seamless handling of corporate networks employing self-signed SSL/TLS certificates over secure WebSockets (`wss://`).  
+    
+- **Data Integrity Guardrail:** Do **NOT** check in or commit your `.env` configuration mapping targets to public version control systems.
